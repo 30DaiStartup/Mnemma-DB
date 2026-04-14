@@ -10,22 +10,40 @@ export interface TeamMember {
   avatar: string;
 }
 
-interface TeamFile {
-  team: TeamMember[];
+export interface TeamGroup {
+  id: string;
+  name: string;
+  members: string[];
 }
 
-let cachedTeam: TeamMember[] | null = null;
+interface TeamFile {
+  team: TeamMember[];
+  teams?: TeamGroup[];
+}
 
-export function getTeam(): TeamMember[] {
-  if (cachedTeam) return cachedTeam;
+let cachedData: TeamFile | null = null;
+
+function loadTeamFile(): TeamFile {
+  if (cachedData) return cachedData;
 
   const filePath = path.join(process.cwd(), "data", "team.yaml");
   const fileContents = fs.readFileSync(filePath, "utf8");
-  const data = YAML.parse(fileContents) as TeamFile;
-  cachedTeam = data.team;
-  return cachedTeam;
+  cachedData = YAML.parse(fileContents) as TeamFile;
+  return cachedData;
+}
+
+export function getTeam(): TeamMember[] {
+  return loadTeamFile().team;
 }
 
 export function getTeamMember(id: string): TeamMember | undefined {
   return getTeam().find((m) => m.id === id);
+}
+
+export function getTeamGroups(): TeamGroup[] {
+  return loadTeamFile().teams || [];
+}
+
+export function getTeamGroupForMember(memberId: string): TeamGroup | undefined {
+  return getTeamGroups().find((g) => g.members.includes(memberId));
 }

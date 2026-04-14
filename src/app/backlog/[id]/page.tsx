@@ -7,6 +7,7 @@ import { PlanningForm } from "@/components/planning/planning-form";
 import { ObjectiveEditor } from "@/components/planning/objective-editor";
 import { TeamSelector } from "@/components/planning/team-selector";
 import { ActivateButton } from "@/components/planning/activate-button";
+import { TeamAssigner } from "@/components/teams/team-assigner";
 import type {
   ProjectWithRelations,
   PhaseDefinition,
@@ -39,6 +40,11 @@ export default async function BacklogPage({ params }: BacklogPageProps) {
   }
 
   const roster = getTeam();
+
+  // Fetch teams for the team assigner
+  const teams = await prisma.team.findMany({
+    orderBy: { sortOrder: "asc" },
+  });
 
   // Parse JSON fields
   const phaseConfig: PhaseDefinition[] = (() => {
@@ -73,6 +79,7 @@ export default async function BacklogPage({ params }: BacklogPageProps) {
     sortOrder: project.sortOrder,
     metadata,
     leadId: project.leadId,
+    teamId: (project as Record<string, unknown>).teamId as string | null ?? null,
     kanbanItems: [],
     transcriptSummaries: [],
     metrics: [],
@@ -110,6 +117,14 @@ export default async function BacklogPage({ params }: BacklogPageProps) {
 
         {/* Right column: Team, Objectives, Activate */}
         <div className="space-y-6">
+          <div className="rounded-xl border bg-card p-4">
+            <TeamAssigner
+              projectId={project.id}
+              teams={teams.map((t) => ({ id: t.id, slug: t.slug, name: t.name }))}
+              initialTeamId={(project as Record<string, unknown>).teamId as string | null}
+            />
+          </div>
+
           <div className="rounded-xl border bg-card p-4">
             <TeamSelector
               projectId={project.id}

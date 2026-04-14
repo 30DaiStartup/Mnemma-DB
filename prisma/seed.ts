@@ -10,12 +10,25 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Clear all tables in correct order (children first)
+  await prisma.personalIdea.deleteMany();
   await prisma.teamAssignment.deleteMany();
   await prisma.objective.deleteMany();
   await prisma.metric.deleteMany();
   await prisma.kanbanItem.deleteMany();
   await prisma.transcriptSummary.deleteMany();
   await prisma.project.deleteMany();
+  await prisma.team.deleteMany();
+
+  // ─── Create Teams ─────────────────────────────────────────────────
+  const engineeringTeam = await prisma.team.create({
+    data: { slug: "engineering", name: "Engineering", sortOrder: 0 },
+  });
+  const productTeam = await prisma.team.create({
+    data: { slug: "product", name: "Product & Design", sortOrder: 1 },
+  });
+  const dataTeam = await prisma.team.create({
+    data: { slug: "data-analytics", name: "Data & Analytics", sortOrder: 2 },
+  });
 
   // ─── Phase configs ───────────────────────────────────────────────
   const technicalPhases = JSON.stringify([
@@ -49,6 +62,7 @@ async function main() {
       nextStep: "Complete integration testing with live customer data",
       leadId: "sarah-chen",
       sortOrder: 0,
+      teamId: engineeringTeam.id,
     },
   });
 
@@ -270,6 +284,7 @@ async function main() {
       nextStep: "Address search relevance issues raised in stakeholder demo",
       leadId: "marcus-johnson",
       sortOrder: 1,
+      teamId: engineeringTeam.id,
     },
   });
 
@@ -424,6 +439,7 @@ async function main() {
       nextStep: "Complete competitive pricing comparison table",
       leadId: "emma-watson",
       sortOrder: 2,
+      teamId: productTeam.id,
     },
   });
 
@@ -563,6 +579,7 @@ async function main() {
       nextStep: "Awaiting Q3 prioritization review",
       leadId: "lisa-zhang",
       sortOrder: 3,
+      teamId: productTeam.id,
     },
   });
 
@@ -598,8 +615,44 @@ async function main() {
     }),
   ]);
 
+  // ─── Personal Ideas ────────────────────────────────────────────────
+  await prisma.$transaction([
+    prisma.personalIdea.create({
+      data: {
+        ownerId: "sarah-chen",
+        title: "Automated code review bot using Claude",
+        description: "Build a bot that reviews PRs and suggests improvements using Claude API.",
+        priority: "high",
+        status: "idea",
+        sortOrder: 0,
+      },
+    }),
+    prisma.personalIdea.create({
+      data: {
+        ownerId: "sarah-chen",
+        title: "Team standup summary generator",
+        description: "Auto-summarize async standup messages from Slack into a daily digest.",
+        priority: "medium",
+        status: "ready",
+        sortOrder: 1,
+      },
+    }),
+    prisma.personalIdea.create({
+      data: {
+        ownerId: "marcus-johnson",
+        title: "Performance monitoring dashboard for KB",
+        description: "Real-time dashboard showing search latency, cache hit rates, and indexing throughput.",
+        priority: "medium",
+        status: "idea",
+        sortOrder: 0,
+      },
+    }),
+  ]);
+
   console.log("Seed completed successfully!");
+  console.log(`  - Created 3 teams`);
   console.log(`  - Created 4 projects`);
+  console.log(`  - Created 3 personal ideas`);
   console.log(`  - Created kanban items, transcripts, metrics, objectives, and team assignments`);
 }
 

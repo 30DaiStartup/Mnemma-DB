@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, X, FileText, GripVertical } from "lucide-react";
+import { Check, X, FileText, GripVertical, Calendar, ListChecks } from "lucide-react";
 import { NewIndicator } from "./new-indicator";
+import { isPast, isToday, format } from "date-fns";
 import type { KanbanItemData } from "@/types";
 import type { TeamMember } from "@/lib/team";
 
@@ -49,6 +50,7 @@ interface KanbanCardProps {
   teamMembers: TeamMember[];
   onApprove?: (id: string) => void;
   onDismiss?: (id: string) => void;
+  onSelect?: (id: string) => void;
 }
 
 export function KanbanCard({
@@ -56,6 +58,7 @@ export function KanbanCard({
   teamMembers,
   onApprove,
   onDismiss,
+  onSelect,
 }: KanbanCardProps) {
   const {
     attributes,
@@ -74,9 +77,20 @@ export function KanbanCard({
   const assignee = teamMembers.find((m) => m.id === item.assigneeId);
   const isUnapproved = item.isNew && !item.approved;
   const isFromTranscript = item.source === "transcript";
+  const labels = item.labels ?? [];
+  const hasSubtasks = (item.subtaskCount ?? 0) > 0;
+  const dueDate = item.dueDate ? new Date(item.dueDate) : null;
+  const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && item.column !== "Done";
+  const isDueToday = dueDate && isToday(dueDate);
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      onClick={() => !isDragging && onSelect?.(item.id)}
+      className="cursor-pointer"
+    >
       <Card
         size="sm"
         className={`${
@@ -85,13 +99,14 @@ export function KanbanCard({
           isUnapproved
             ? "border-dashed border-blue-500/40 ring-blue-500/20"
             : ""
-        }`}
+        } hover:border-primary/30 transition-colors`}
       >
-        <div className="px-3 py-2 space-y-2">
+        <div className="px-3 py-2 space-y-1.5">
           {/* Header row: drag handle + title + transcript icon */}
           <div className="flex items-start gap-1.5">
             <button
               {...listeners}
+              onClick={(e) => e.stopPropagation()}
               className="mt-0.5 cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground transition-colors shrink-0"
             >
               <GripVertical className="w-3.5 h-3.5" />
@@ -107,6 +122,58 @@ export function KanbanCard({
               </div>
             </div>
           </div>
+
+          {/* Labels */}
+          {labels.length > 0 && (
+            <div className="flex items-center gap-1 pl-5">
+              {labels.slice(0, 4).map((label) => (
+                <span
+                  key={label.id}
+                  className="w-4 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: label.color }}
+                  title={label.name}
+                />
+              ))}
+              {labels.length > 4 && (
+                <span className="text-[10px] text-muted-foreground">
+                  +{labels.length - 4}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Description preview */}
+          {item.description && (
+            <p className="text-xs text-muted-foreground truncate pl-5">
+              {item.description.slice(0, 60)}
+            </p>
+          )}
+
+          {/* Due date + subtask progress */}
+          {(dueDate || hasSubtasks) && (
+            <div className="flex items-center gap-3 pl-5">
+              {dueDate && (
+                <span
+                  className={`flex items-center gap-1 text-[10px] ${
+                    isOverdue
+                      ? "text-red-400"
+                      : isDueToday
+                        ? "text-amber-400"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  <Calendar className="w-3 h-3" />
+                  {format(dueDate, "MMM d")}
+                </span>
+              )}
+              {hasSubtasks && (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <ListChecks className="w-3 h-3" />
+                  {item.subtaskCompletedCount}/{item.subtaskCount}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* New indicator */}
           {isUnapproved && <NewIndicator />}
@@ -137,7 +204,10 @@ export function KanbanCard({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
-                  onClick={() => onApprove?.(item.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onApprove?.(item.id);
+                  }}
                 >
                   <Check className="w-3.5 h-3.5" />
                 </Button>
@@ -145,7 +215,10 @@ export function KanbanCard({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
-                  onClick={() => onDismiss?.(item.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDismiss?.(item.id);
+                  }}
                 >
                   <X className="w-3.5 h-3.5" />
                 </Button>

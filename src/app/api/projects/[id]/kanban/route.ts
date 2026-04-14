@@ -23,11 +23,27 @@ export async function GET(
         ...(includeDismissed ? {} : { dismissed: false }),
       },
       orderBy: { sortOrder: "asc" },
+      include: {
+        labels: {
+          include: { label: true },
+        },
+        _count: {
+          select: { subtasks: true },
+        },
+        subtasks: {
+          where: { completed: true },
+          select: { id: true },
+        },
+      },
     });
 
-    const parsed = items.map((item: { metadata: string;[key: string]: unknown }) => ({
+    const parsed = items.map((item) => ({
       ...item,
-      metadata: JSON.parse(item.metadata),
+      metadata: JSON.parse(item.metadata as string),
+      labels: item.labels.map((il) => il.label),
+      subtaskCount: item._count.subtasks,
+      subtaskCompletedCount: item.subtasks.length,
+      _count: undefined,
     }));
 
     return NextResponse.json(parsed);

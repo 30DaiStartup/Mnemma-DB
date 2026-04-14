@@ -67,6 +67,7 @@ export interface ProjectWithRelations {
   sortOrder: number;
   metadata: Record<string, unknown>;
   leadId: string;
+  teamId: string | null;
   kanbanItems: KanbanItemData[];
   transcriptSummaries: TranscriptSummaryData[];
   metrics: MetricData[];
@@ -85,14 +86,64 @@ export interface KanbanItemData {
   sortOrder: number;
   priority: string;
   assigneeId: string;
+  dueDate: string | null;
   source: string;
   sourceId: string;
   isNew: boolean;
   approved: boolean;
   dismissed: boolean;
   metadata: Record<string, unknown>;
+  labels: KanbanLabelData[];
+  subtaskCount: number;
+  subtaskCompletedCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface KanbanColumnData {
+  id: string;
+  projectId: string;
+  name: string;
+  sortOrder: number;
+  wipLimit: number;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KanbanLabelData {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string;
+}
+
+export interface KanbanSubtaskData {
+  id: string;
+  itemId: string;
+  title: string;
+  completed: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KanbanActivityData {
+  id: string;
+  itemId: string;
+  type: string;
+  actorId: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface KanbanFilters {
+  search: string;
+  assigneeIds: string[];
+  priorities: string[];
+  labelIds: string[];
+  dueDateFilter: "overdue" | "today" | "this-week" | "no-date" | null;
 }
 
 export interface TranscriptSummaryData {
@@ -138,6 +189,34 @@ export interface TeamAssignmentData {
   projectId: string;
   memberId: string;
   role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamGroupData {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  sortOrder: number;
+  projectCount: number;
+  memberIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const PERSONAL_IDEA_STATUSES = ["idea", "ready", "promoted", "discarded"] as const;
+export type PersonalIdeaStatus = (typeof PERSONAL_IDEA_STATUSES)[number];
+
+export interface PersonalIdeaData {
+  id: string;
+  ownerId: string;
+  title: string;
+  description: string;
+  priority: string;
+  status: string;
+  promotedToProjectId: string | null;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }

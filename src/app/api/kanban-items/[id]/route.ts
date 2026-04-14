@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateKanbanItemSchema } from "@/lib/validators";
 
+// Fields we track in activity log
+const TRACKED_FIELDS: Record<string, string> = {
+  column: "status_change",
+  assigneeId: "assignment",
+  priority: "priority",
+};
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -27,10 +34,42 @@ export async function PATCH(
       );
     }
 
+    // Handle dueDate conversion
+    const updateData: Record<string, unknown> = { ...result.data };
+    if ("dueDate" in updateData) {
+      updateData.dueDate = updateData.dueDate
+        ? new Date(updateData.dueDate as string)
+        : null;
+    }
+
     const item = await prisma.kanbanItem.update({
       where: { id },
-      data: result.data,
+      data: updateData,
     });
+
+    // Create activity log entries for tracked field changes
+    const activityEntries = [];
+    for (const [field, activityType] of Object.entries(TRACKED_FIELDS)) {
+      if (
+        field in result.data &&
+        (result.data as Record<string, unknown>)[field] !==
+          (existing as Record<string, unknown>)[field]
+      ) {
+        activityEntries.push({
+          itemId: id,
+          type: activityType,
+          content: "",
+          metadata: JSON.stringify({
+            from: String((existing as Record<string, unknown>)[field] ?? ""),
+            to: String((result.data as Record<string, unknown>)[field] ?? ""),
+          }),
+        });
+      }
+    }
+
+    if (activityEntries.length > 0) {
+      await prisma.kanbanActivity.createMany({ data: activityEntries });
+    }
 
     return NextResponse.json({
       ...item,

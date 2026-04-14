@@ -13,6 +13,7 @@ export const createProjectSchema = z.object({
   sortOrder: z.number().int().optional().default(0),
   metadata: z.string().optional().default("{}"),
   leadId: z.string().optional().default(""),
+  teamId: z.string().nullable().optional(),
 });
 
 export const updateProjectSchema = z.object({
@@ -27,6 +28,7 @@ export const updateProjectSchema = z.object({
   sortOrder: z.number().int().optional(),
   metadata: z.string().optional(),
   leadId: z.string().optional(),
+  teamId: z.string().nullable().optional(),
 });
 
 // Kanban validators
@@ -51,6 +53,7 @@ export const updateKanbanItemSchema = z.object({
   sortOrder: z.number().int().optional(),
   priority: z.enum(["low", "medium", "high", "critical"]).optional(),
   assigneeId: z.string().optional(),
+  dueDate: z.string().nullable().optional(),
   isNew: z.boolean().optional(),
   approved: z.boolean().optional(),
   dismissed: z.boolean().optional(),
@@ -65,6 +68,78 @@ export const reorderKanbanSchema = z.object({
       sortOrder: z.number().int(),
     })
   ),
+});
+
+// Kanban column validators
+export const createKanbanColumnSchema = z.object({
+  name: z.string().min(1).max(100),
+  color: z.string().optional().default(""),
+  sortOrder: z.number().int().optional(),
+  wipLimit: z.number().int().min(0).optional().default(0),
+});
+
+export const updateKanbanColumnSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  color: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  wipLimit: z.number().int().min(0).optional(),
+});
+
+export const reorderKanbanColumnsSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      sortOrder: z.number().int(),
+    })
+  ),
+});
+
+// Kanban label validators
+export const createKanbanLabelSchema = z.object({
+  name: z.string().min(1).max(50),
+  color: z.string().optional().default("#3b82f6"),
+});
+
+export const updateKanbanLabelSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  color: z.string().optional(),
+});
+
+// Kanban subtask validators
+export const createKanbanSubtaskSchema = z.object({
+  title: z.string().min(1).max(500),
+  sortOrder: z.number().int().optional().default(0),
+});
+
+export const updateKanbanSubtaskSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  completed: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+export const reorderKanbanSubtasksSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      sortOrder: z.number().int(),
+    })
+  ),
+});
+
+// Kanban activity validators
+export const createKanbanCommentSchema = z.object({
+  content: z.string().min(1).max(5000),
+  actorId: z.string().optional().default(""),
+});
+
+// Kanban bulk action validators
+export const bulkUpdateKanbanItemsSchema = z.object({
+  ids: z.array(z.string()).min(1),
+  update: z.object({
+    column: z.string().optional(),
+    assigneeId: z.string().optional(),
+    priority: z.enum(["low", "medium", "high", "critical"]).optional(),
+  }),
 });
 
 // Transcript validators
@@ -150,6 +225,36 @@ export const ingestMetricsSchema = z.object({
       value: z.number(),
       unit: z.string().optional().default(""),
       category: z.string().optional().default(""),
+    })
+  ),
+});
+
+// Personal idea validators
+export const createPersonalIdeaSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().optional().default(""),
+  priority: z.enum(["low", "medium", "high", "critical"]).optional().default("medium"),
+  sortOrder: z.number().int().optional().default(0),
+});
+
+export const updatePersonalIdeaSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  description: z.string().optional(),
+  priority: z.enum(["low", "medium", "high", "critical"]).optional(),
+  status: z.enum(["idea", "ready", "promoted", "discarded"]).optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+export const promoteIdeaSchema = z.object({
+  teamId: z.string().min(1),
+});
+
+// Team backlog reorder
+export const reorderTeamBacklogSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      sortOrder: z.number().int(),
     })
   ),
 });

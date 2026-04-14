@@ -1,3 +1,14 @@
+teams:
+  - id: "engineering"
+    name: "Engineering"
+    members: ["sarah-chen", "marcus-johnson", "priya-patel", "alex-rivera", "jordan-kim"]
+  - id: "product"
+    name: "Product & Design"
+    members: ["emma-watson", "lisa-zhang"]
+  - id: "data-analytics"
+    name: "Data & Analytics"
+    members: ["david-okafor", "tom-martinez", "nina-kowalski"]
+
 team:
   - id: "sarah-chen"
     name: "Sarah Chen"

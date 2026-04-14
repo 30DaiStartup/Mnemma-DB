@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Menu } from "lucide-react";
+import { LayoutDashboard, Menu, Users, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/teams", label: "Teams", icon: Users },
+  { href: "/my", label: "My Work", icon: User },
 ];
 
 function SidebarNav() {

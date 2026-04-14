@@ -28,8 +28,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
+    const teamId = searchParams.get("teamId");
 
-    const where = status ? { status } : {};
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    if (teamId) where.teamId = teamId;
 
     const projects = await prisma.project.findMany({
       where,
