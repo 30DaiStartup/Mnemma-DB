@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const path = require("path");
+const fs = require("fs");
+const YAML = require("yaml");
+const bcrypt = require("bcryptjs");
 const { PrismaClient } = require("../src/generated/prisma/client");
 const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
 
@@ -10,6 +13,7 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Clear all tables in correct order (children first)
+  await prisma.user.deleteMany();
   await prisma.personalIdea.deleteMany();
   await prisma.teamAssignment.deleteMany();
   await prisma.objective.deleteMany();
@@ -18,6 +22,25 @@ async function main() {
   await prisma.transcriptSummary.deleteMany();
   await prisma.project.deleteMany();
   await prisma.team.deleteMany();
+
+  // ─── Seed Users from team.yaml ──────────────────────────────────
+  const teamFilePath = path.join(process.cwd(), "data", "team.yaml");
+  const teamFileContents = fs.readFileSync(teamFilePath, "utf8");
+  const teamData = YAML.parse(teamFileContents);
+  const defaultPasswordHash = bcrypt.hashSync("Dashboard", 10);
+
+  for (const member of teamData.team) {
+    await prisma.user.create({
+      data: {
+        id: member.id,
+        email: member.email.toLowerCase(),
+        name: member.name,
+        passwordHash: defaultPasswordHash,
+        mustChangePassword: true,
+      },
+    });
+  }
+  console.log(`  - Created ${teamData.team.length} users (default password: Dashboard)`);
 
   // ─── Create Teams ─────────────────────────────────────────────────
   const engineeringTeam = await prisma.team.create({

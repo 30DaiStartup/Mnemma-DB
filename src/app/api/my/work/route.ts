@@ -4,7 +4,7 @@ import { getCurrentMemberId } from "@/lib/current-user";
 
 export async function GET() {
   try {
-    const memberId = getCurrentMemberId();
+    const memberId = await getCurrentMemberId();
 
     // Find projects where user is assigned or is lead
     const projects = await prisma.project.findMany({

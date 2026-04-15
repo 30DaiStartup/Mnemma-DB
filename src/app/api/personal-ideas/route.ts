@@ -6,7 +6,7 @@ import { getCurrentMemberId } from "@/lib/current-user";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const ownerId = searchParams.get("ownerId") || getCurrentMemberId();
+    const ownerId = searchParams.get("ownerId") || await getCurrentMemberId();
 
     const ideas = await prisma.personalIdea.findMany({
       where: { ownerId },
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ownerId = getCurrentMemberId();
+    const ownerId = await getCurrentMemberId();
 
     const idea = await prisma.personalIdea.create({
       data: {

@@ -1,16 +1,21 @@
-import { getTeam } from "@/lib/team";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 /**
- * Get the current member ID.
- * In dev mode (no auth configured), uses DEV_USER_ID env var or falls back to
- * the first member in team.yaml.
+ * Get the current member ID from the session.
+ * Falls back to DEV_USER_ID env var for scripts/testing.
  *
- * NOTE: This file must NOT be imported in Edge middleware — it uses Node.js APIs
- * via team.ts. Only import from API routes and server components.
+ * NOTE: This is async because it reads the session. Only call from
+ * API routes and server components (not Edge middleware).
  */
-export function getCurrentMemberId(): string {
+export async function getCurrentMemberId(): Promise<string> {
+  const session = await auth();
+  if (session?.user?.id) return session.user.id;
+
+  // Fallback for dev/testing
   if (process.env.DEV_USER_ID) return process.env.DEV_USER_ID;
 
-  const team = getTeam();
-  return team[0]?.id || "unknown";
+  // Last resort: first user in DB
+  const first = await prisma.user.findFirst({ select: { id: true } });
+  return first?.id || "unknown";
 }
