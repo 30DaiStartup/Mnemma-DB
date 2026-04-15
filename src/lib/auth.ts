@@ -1,61 +1,56 @@
 import NextAuth from "next-auth";
-import AzureAd from "next-auth/providers/azure-ad";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import { authConfig } from "@/lib/auth.config";
 
 /**
- * Auth is optional — if Azure AD env vars are not set, the app runs without auth.
- * This lets dev mode work without any Azure configuration.
+ * Full auth setup with Node.js-only authorize logic.
+ * Do NOT import this from Edge middleware — use auth.config.ts instead.
  */
-
-const isAuthConfigured = Boolean(
-  process.env.AZURE_AD_CLIENT_ID &&
-    process.env.AZURE_AD_CLIENT_SECRET &&
-    process.env.AZURE_AD_TENANT_ID
-);
-
-const providers = isAuthConfigured
-  ? [
-      AzureAd({
-        clientId: process.env.AZURE_AD_CLIENT_ID!,
-        clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-        issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID!}/v2.0`,
-      }),
-    ]
-  : [];
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers,
-  secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
-  callbacks: {
-    authorized({ auth: session }) {
-      // If auth is not configured, allow all requests
-      if (!isAuthConfigured) return true;
-      // Otherwise require a valid session
-      return !!session?.user;
-    },
-  },
+  ...authConfig,
+  providers: [
+    Credentials({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string | undefined;
+        const password = credentials?.password as string | undefined;
+        if (!email || !password) return null;
+
+        const user = await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+        });
+        if (!user) return null;
+
+        const valid = bcrypt.compareSync(password, user.passwordHash);
+        if (!valid) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          mustChangePassword: user.mustChangePassword,
+        };
+      },
+    }),
+  ],
 });
 
 // ---------------------------------------------------------------------------
 // Role-based helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Check if the session user is an admin.
- * Reads ADMIN_EMAILS env var (comma-separated list).
- * If ADMIN_EMAILS is not set, all authenticated users are considered admins.
- * If auth is not configured at all, returns true (dev mode — no restrictions).
- */
+const adminEmails = process.env.ADMIN_EMAILS;
+
 export function isAdmin(
   session: { user?: { email?: string | null } } | null | undefined
 ): boolean {
-  // Auth not configured — dev mode, allow everything
-  if (!isAuthConfigured) return true;
-
-  // No session means not authenticated
   if (!session?.user) return false;
-
-  const adminEmails = process.env.ADMIN_EMAILS;
-  // If no admin list is defined, all authenticated users are admins
   if (!adminEmails) return true;
 
   const list = adminEmails

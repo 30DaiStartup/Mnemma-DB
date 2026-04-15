@@ -81,8 +81,16 @@ function SidebarContent() {
   );
 }
 
+const AUTH_ROUTES = ["/login", "/change-password"];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Auth pages render without the app shell
+  if (AUTH_ROUTES.includes(pathname)) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-full min-h-screen">
